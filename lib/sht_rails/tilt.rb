@@ -14,11 +14,13 @@ module ShtRails
 
     def evaluate(scope, locals, &block)
       template_key = path_to_key scope
+      partial_name = template_key.gsub(%r(/), ".")
       <<-HandlebarsTemplate
   (function() { 
   #{namespace} || (#{namespace} = {});
   #{namespace}CachedShtTemplates || (#{namespace}CachedShtTemplates = {});
   #{namespace}CachedShtTemplates[#{template_key.inspect}] = Handlebars.compile(#{data.inspect});
+  Handlebars.registerPartial(#{partial_name.inspect}, #{data.inspect});
   #{namespace}[#{template_key.inspect}] = function(object) {
     if (object == null){
       return #{ShtRails.template_namespace}CachedShtTemplates[#{template_key.inspect}];

@@ -6,6 +6,7 @@ module ShtRails
   module Handlebars
     def self.call(template)
       register_helpers
+      register_partials
       if template.locals.include?(ShtRails.action_view_key.to_s) || template.locals.include?(ShtRails.action_view_key.to_sym)
 <<-SHT
   partials.each do |key, value|
@@ -29,6 +30,24 @@ SHT
         context.handlebars.eval_js "Handlebars = this;\n" + source
       end
       @helper_registered = true
+    end
+
+    # Register partial named "path.to.template"
+    # If you have 'app/templates/foo/_bar.handlebars',
+    # you can write `{{> foo/bar}}` or `{{> foo.bar}}` to use it.
+    def self.register_partials
+      Dir.chdir(ShtRails.template_base_path) do |dir|
+        Dir.glob("**/*.#{ShtRails.template_extension}") do |path|
+          # "foo/_bar.handlebars" -> "foo/bar"
+          logical_name = File.join(
+            File.dirname(path),
+            File.basename(path, ".#{ShtRails.template_extension}").gsub(/^_?/, "")
+          )
+          # "foo/bar" -> "foo.bar"
+          partial_name = logical_name.gsub(%r(/), ".")
+          context.register_partial(partial_name, File.read(path))
+        end
+      end
     end
   end
 end
