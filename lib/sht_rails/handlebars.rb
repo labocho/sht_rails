@@ -8,11 +8,12 @@ module ShtRails
       register_helpers
       register_partials
       if template.locals.include?(ShtRails.action_view_key.to_s) || template.locals.include?(ShtRails.action_view_key.to_sym)
+        compile(template.identifier, template.source)
 <<-SHT
   partials.each do |key, value|
     ::ShtRails::Handlebars.context.register_partial(key, value)
   end if defined?(partials) && partials.is_a?(Hash)
-  ::ShtRails::Handlebars.context.compile(#{template.source.inspect}).call(#{ShtRails.action_view_key.to_s} || {}).html_safe
+  ::ShtRails::Handlebars.render(#{template.identifier.inspect}, #{ShtRails.action_view_key.to_s} || {}).html_safe
 SHT
       else
         "#{template.source.inspect}.html_safe"
@@ -21,6 +22,18 @@ SHT
 
     def self.context
       @context ||= ::Handlebars::Context.new
+    end
+
+    def self.compile(identifier, source)
+      @compiled_templates ||= {}
+      if ShtRails.cache_templates && @compiled_templates[identifier]
+        return @compiled_templates[identifier]
+      end
+      @compiled_templates[identifier] = Handlebars.context.compile(source)
+    end
+
+    def self.render(identifier, object)
+      @compiled_templates[identifier].call(object)
     end
 
     def self.register_helpers
@@ -36,6 +49,7 @@ SHT
     # If you have 'app/templates/foo/_bar.handlebars',
     # you can write `{{> foo/bar}}` or `{{> foo.bar}}` to use it.
     def self.register_partials
+      return if ShtRails.cache_templates && @partial_registered
       Dir.chdir(ShtRails.template_base_path) do |dir|
         Dir.glob("**/*.#{ShtRails.template_extension}") do |path|
           # "foo/_bar.handlebars" -> "foo/bar"
@@ -48,6 +62,7 @@ SHT
           context.register_partial(partial_name, File.read(path))
         end
       end
+      @partial_registered = true
     end
   end
 end

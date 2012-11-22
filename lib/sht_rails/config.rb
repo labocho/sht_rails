@@ -10,7 +10,7 @@ module ShtRails
   # end
 
   module Config
-    attr_accessor :template_base_path, :template_helpers_path,  :cache_helpers, :template_extension, :action_view_key, :template_namespace
+    attr_accessor :template_base_path, :template_helpers_path,  :cache_helpers, :cache_templates, :template_extension, :action_view_key, :template_namespace
 
     def configure
       yield self
@@ -25,7 +25,11 @@ module ShtRails
     end
 
     def cache_helpers
-      @cache_helpers = false if @cache_helpers.nil?
+      @cache_helpers = @cache_helpers.nil? ? false : @cache_helpers
+    end
+
+    def cache_templates
+      @cache_templates = @cache_templates.nil? ? false : @cache_templates
     end
 
     def template_extension
